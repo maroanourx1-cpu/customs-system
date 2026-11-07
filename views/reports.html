@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="bar"><h1>{{ ic('chart') }} التقارير</h1></div>
+<div class="card">
+  <form class="row" method="get">
+    <div><label>من تاريخ وصول</label><input type="date" name="date_from" value="{{ d_from }}"></div>
+    <div><label>إلى</label><input type="date" name="date_to" value="{{ d_to }}"></div>
+    <button class="btn navy auto">عرض التقرير</button>
+    <a class="btn light auto noprint" href="{{ url_for('reports_export', date_from=d_from, date_to=d_to) }}">{{ ic('download') }} تصدير Excel/CSV</a>
+    <button type="button" class="btn light auto noprint" onclick="print()">{{ ic('printer') }} طباعة</button>
+  </form>
+</div>
+<div class="grid2">
+  <div class="card">
+    <h3>حالة الشحنات</h3>
+    <div class="donutwrap">
+      <div class="donut" style="background:conic-gradient({{ gradient }})"></div>
+      <div class="legend">{% for k,v,p,c in legend %}<div><i style="background:{{ c }}"></i>{{ k }}: <b>{{ v }}</b> ({{ p }}%)</div>{% endfor %}</div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>ملخص</h3>
+    <div class="stats" style="grid-template-columns:1fr 1fr">
+      <div class="stat"><b>{{ open_count }}</b>شحنات مفتوحة</div>
+      <div class="stat"><b>{{ closed_count }}</b>شحنات منتهية</div>
+    </div>
+  </div>
+</div>
+<div class="card">
+  <h3>تفاصيل الشحنات والمستندات الناقصة</h3>
+  <div class="tablewrap"><table>
+    <tr><th>الشحنة</th><th>اسم الشركة</th><th>تاريخ الوصول</th><th>المرحلة</th><th>الحالة</th><th>مستندات ناقصة</th></tr>
+    {% for o in out %}<tr>
+      <td><a href="{{ url_for('shipment_detail', sid=o.r.id) }}">{{ o.r.number }}</a></td><td>{{ o.r.client }}</td><td>{{ o.r.arrival_date or '-' }}</td>
+      <td>{{ STAGES[o.r.stage-1] }}</td><td><span class="badge {{ o.color }}">{{ o.label }}</span></td>
+      <td class="missing">{{ o.missing|join('، ') if o.missing else '—' }}</td>
+    </tr>{% else %}<tr><td colspan="6" class="empty">لا توجد بيانات</td></tr>{% endfor %}
+  </table></div>
+</div>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="bar"><h1>{{ 'تعديل موظف' if uid else 'موظف جديد' }}</h1></div>
+<div class="card"><form method="post">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="row">
+    <div><label>الاسم الكامل</label><input name="full_name" value="{{ u.full_name or '' }}" required></div>
+    <div><label>اسم المستخدم</label><input name="username" value="{{ u.username or '' }}" {{ 'readonly' if uid else 'required' }}></div>
+    <div><label>{{ 'كلمة مرور جديدة (اختياري)' if uid else 'كلمة المرور' }}</label><input type="password" name="password" autocomplete="new-password" {{ '' if uid else 'required' }}></div>
+  </div>
+  <h3 style="margin-top:20px">الصلاحيات</h3>
+  <label><input type="checkbox" name="can_add" {{ 'checked' if u.can_add }}> إضافة (شحنات ومستندات)</label>
+  <label><input type="checkbox" name="can_edit" {{ 'checked' if u.can_edit }}> تعديل</label>
+  <label><input type="checkbox" name="can_delete" {{ 'checked' if u.can_delete }}> حذف</label>
+  <label><input type="checkbox" name="is_admin" {{ 'checked' if u.is_admin }}> مدير (كل الصلاحيات)</label>
+  {% if uid %}<label><input type="checkbox" name="active" {{ 'checked' if u.active }}> الحساب نشط (ألغِ التحديد لإيقافه)</label>{% endif %}
+  <p><button class="btn">حفظ</button> <a class="btn light" href="{{ url_for('employees') }}">إلغاء</a></p>
+</form></div>
+{% endblock %}

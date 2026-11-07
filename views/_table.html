@@ -1,0 +1,11 @@
+{% set rows = rows if rows is defined else recent %}
+<div class="tablewrap"><table>
+<tr><th>رقم الشحنة</th><th>اسم الشركة</th><th>شركة الشحن</th><th>رقم البوليصة</th><th>تاريخ الوصول</th><th>الحالة</th></tr>
+{% for s in rows %}{% set st = status_of(s.stage) %}
+<tr>
+<td><a href="{{ url_for('shipment_detail', sid=s.id) }}"><b>{{ s.number }}</b></a></td>
+<td>{{ s.client }}</td><td>{{ s.carrier or '-' }}</td><td>{{ s.bl_number or '-' }}</td><td>{{ s.arrival_date or '-' }}</td>
+<td><span class="badge {{ st[1] }}">{{ st[0] }}</span></td>
+</tr>
+{% else %}<tr><td colspan="6" class="empty">لا توجد شحنات</td></tr>{% endfor %}
+</table></div>
