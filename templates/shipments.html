@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="bar"><h1>{{ ic('ship') }} الشحنات ({{ total }})</h1>
+  <div>{% if me.is_admin %}<a class="btn navy" href="{{ url_for('shipment_scan') }}">{{ ic('file') }} اسكان</a>{% endif %}
+  {% if me.is_admin or me.can_add %}<a class="btn" href="{{ url_for('shipment_new') }}">{{ ic('plus') }} شحنة جديدة</a>{% endif %}</div></div>
+<div class="card">
+  <form class="row" method="get" style="margin-bottom:14px">
+    <input name="q" value="{{ request.args.get('q','') }}" placeholder="ابحث برقم الشحنة أو اسم العميل أو البوليصة...">
+    <select name="status" class="auto" style="width:auto">
+      <option value="">كل الحالات</option>
+      <option value="open" {{ 'selected' if request.args.get('status')=='open' }}>المفتوحة</option>
+      <option value="closed" {{ 'selected' if request.args.get('status')=='closed' }}>المنتهية</option>
+    </select>
+    <button class="btn auto">بحث</button>
+  </form>
+  {% include "_table.html" %}
+  {% if pages > 1 %}
+  <div class="pager">
+    {% for i in range(1, pages+1) %}
+      {% if i == page_no %}<span class="cur">{{ i }}</span>{% else %}<a href="{{ url_for('shipments', q=request.args.get('q',''), status=request.args.get('status',''), p=i) }}">{{ i }}</a>{% endif %}
+    {% endfor %}
+  </div>{% endif %}
+</div>
+{% endblock %}
