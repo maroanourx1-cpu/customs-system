@@ -1,4 +1,0 @@
-{% extends 'base.html' if me else 'bare.html' %}
-{% block body %}
-<div class="card errpage"><h1>{{ code }}</h1><p style="font-size:18px;font-weight:700">{{ msg }}</p><a class="btn" href="{{ url_for('home') }}">{{ ic('home') }} الرئيسية</a></div>
-{% endblock %}
