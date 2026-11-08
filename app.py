@@ -23,7 +23,7 @@ from flask import (Flask, abort, flash, g, jsonify, redirect, render_template, r
 from werkzeug.security import check_password_hash, generate_password_hash
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "data")
+DATA_DIR = os.environ.get("DATA_DIR") or ("/data" if os.path.isdir("/data") else os.path.join(BASE_DIR, "data"))
 UPLOAD_DIR = os.path.join(DATA_DIR, "uploads")
 BACKUP_DIR = os.path.join(DATA_DIR, "backups")
 DB_PATH = os.path.join(DATA_DIR, "app.db")
@@ -31,7 +31,9 @@ SECRET_PATH = os.path.join(DATA_DIR, "secret.key")
 for d in (DATA_DIR, UPLOAD_DIR, BACKUP_DIR):
     os.makedirs(d, exist_ok=True)
 
-if os.path.exists(SECRET_PATH):
+if os.environ.get("SESSION_SECRET"):
+    SECRET = os.environ["SESSION_SECRET"]
+elif os.path.exists(SECRET_PATH):
     SECRET = open(SECRET_PATH).read().strip()
 else:
     SECRET = secrets.token_hex(32)
@@ -40,6 +42,8 @@ else:
 
 app = Flask(__name__)
 app.secret_key = SECRET
+from werkzeug.middleware.proxy_fix import ProxyFix  # noqa: E402
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)  # خلف بروكسي suga (HTTPS)
 app.config["MAX_CONTENT_LENGTH"] = 30 * 1024 * 1024
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
@@ -323,7 +327,7 @@ def init_db():
         db.execute(
             "INSERT INTO users(username,full_name,password_hash,is_admin,can_add,can_edit,can_delete,created_at)"
             " VALUES('admin','مدير النظام',?,1,1,1,1,?)",
-            (generate_password_hash("Admin@123"), now()))
+            (generate_password_hash(os.environ.get("ADMIN_PASSWORD") or "Admin@123"), now()))
         print(">> تم إنشاء المدير الافتراضي: admin / Admin@123  (غيّر كلمة المرور فور الدخول)")
     db.commit()
     db.close()
@@ -1917,7 +1921,7 @@ if "--demo" in sys.argv:
 
 if __name__ == "__main__":
     host = os.environ.get("HOST", "0.0.0.0")
-    port = int(os.environ.get("PORT", "5000"))
+    port = int(os.environ.get("PORT", "8080" if os.environ.get("DATA_DIR") or os.path.isdir("/data") else "5000"))
     print(f">> افتح المتصفح على: http://localhost:{port}")
     try:
         from waitress import serve
