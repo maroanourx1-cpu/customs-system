@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block body %}
+{% set st = status_of(s.stage) %}
+<div class="bar">
+  <h1>{{ ic('ship') }} تفاصيل الشحنة: {{ s.number }} <span class="badge {{ st[1] }}">{{ st[0] }}</span></h1>
+  <div>
+    {% if me.is_admin or me.can_edit %}<a class="btn" href="{{ url_for('shipment_edit', sid=s.id) }}">{{ ic('edit') }} تعديل</a>{% endif %}
+    {% if me.is_admin or me.can_delete %}
+    <form method="post" action="{{ url_for('shipment_delete', sid=s.id) }}" style="display:inline" onsubmit="return confirm('حذف الشحنة؟')">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn red">{{ ic('trash') }} حذف</button></form>{% endif %}
+    <a class="btn" href="{{ url_for('offers', sid=s.id) }}">{{ ic('tag') }} الاختيارات{% if offers_n %} ({{ offers_n }}){% endif %}</a>
+    <a class="btn navy" href="{{ url_for('task_new', shipment=s.id) }}">{{ ic('task') }} إرسال أمر</a>
+    <a class="btn navy" href="{{ url_for('shipment_history', sid=s.id) }}">{{ ic('history') }} سجل</a>
+    <a class="btn light" href="{{ url_for('shipments') }}">{{ ic('back') }} رجوع</a>
+  </div>
+</div>
+
+<div class="grid2">
+<div class="card">
+  <h3>بيانات الشحنة</h3>
+  <div class="kv">
+    <div class="k">اسم الشركة</div><div>{{ s.client }}</div>
+    <div class="k">شركة الشحن</div><div>{{ s.carrier or '-' }}</div>
+    <div class="k">رقم البوليصة</div><div>{{ s.bl_number or '-' }}</div>
+    <div class="k">تاريخ الوصول</div><div>{{ s.arrival_date or '-' }}</div>
+    <div class="k">نوع الشحنة</div><div>{{ s.type or '-' }}</div>
+    {% for col, label, kind in EXTRA_FIELDS %}<div class="k">{{ label }}</div><div>{{ s[col] if s[col] not in (None, '') else '-' }}</div>
+    {% endfor %}
+    <div class="k">أُضيفت بواسطة</div><div>{{ s.created_by }} — {{ s.created_at }}</div>
+    <div class="k">آخر تعديل</div><div>{{ s.updated_by }} — {{ s.updated_at }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>حالة الشحنة</h3>
+  <div class="stepper" style="--p:{{ ((s.stage-1)/7)|round(3) }}">
+    {% for name in STAGES %}{% set n = loop.index %}
+    <div class="step {{ 'done' if n < s.stage else ('cur' if n == s.stage else '') }}" data-n="{{ n }}" role="button" tabindex="0" title="اضغط لشرح المرحلة"><i>{% if n < s.stage %}{{ ic('check') }}{% else %}{{ n }}{% endif %}</i>{{ name }}</div>
+    {% endfor %}
+  </div>
+  <div class="stage-help" id="stageHelp">
+    <p class="mut" style="margin:0 0 8px">اضغط على أي مرحلة لشرحها</p>
+    {% for name in STAGES %}{% set n = loop.index %}{% set info = STAGE_INFO[loop.index0] %}
+    <div class="si" data-n="{{ n }}" {% if n != s.stage %}hidden{% endif %}>
+      <h4>{{ n }}. {{ name }}{% if n == s.stage %} <span class="badge blue">المرحلة الحالية</span>{% endif %}</h4>
+      <p>{{ info.summary }}</p>
+      <b>إزاي بتتم:</b>
+      <ol>{% for x in info.steps %}<li>{{ x }}</li>{% endfor %}</ol>
+      <b>المطلوب:</b>
+      <div class="chips">{% for x in info.needs %}<span>{{ x }}</span>{% endfor %}</div>
+    </div>{% endfor %}
+    <p class="mut" style="margin:10px 0 0;font-size:12px">الشرح عام، وممكن تختلف التفاصيل حسب المنفذ ونوع البضاعة.</p>
+  </div>
+  {% if s.stage < 8 %}
+  <div class="reqs">
+    <b>المطلوب لانتقال الشحنة تلقائيًا للمرحلة التالية:</b>
+    <div class="chips">{% for label, ok in reqs %}<span class="{{ 'ok' if ok else 'no' }}">{{ '✓' if ok else '✗' }} {{ label }}</span>{% endfor %}</div>
+    <p class="mut" style="margin:8px 0 0;font-size:12px">أول ما كل المطلوب يتوفر (بيانات أو مستندات) المرحلة بتتحدث لوحدها.</p>
+  </div>
+  {% endif %}
+  {% if me.is_admin or me.can_edit %}
+  <form method="post" action="{{ url_for('shipment_stage', sid=s.id) }}" class="row" style="margin-top:16px">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <select name="stage">{% for name in STAGES %}<option value="{{ loop.index }}" {{ 'selected' if loop.index==s.stage }}>{{ loop.index }}. {{ name }}</option>{% endfor %}</select>
+    <button class="btn auto">تحديث المرحلة</button>
+  </form>{% endif %}
+  {% if approved %}<p class="okmsg">{{ ic('tag') }} العرض المعتمد: {{ approved.provider }} — {{ '%g'|format(approved.price) }} {{ approved.currency }} (اعتمده {{ approved.approved_by }})</p>
+  {% elif offers_n %}<p class="missing">{{ ic('tag') }} يوجد {{ offers_n }} عرض بانتظار الاعتماد — <a href="{{ url_for('offers', sid=s.id) }}">فتح الاختيارات</a></p>{% endif %}
+  {% if pulls %}{% if pull_missing %}<p class="missing">{{ ic('pull') }} مستندات سحب ناقصة: {{ pull_missing|join('، ') }}</p>{% else %}<p class="okmsg">{{ ic('check') }} تم سحب كل المستندات المطلوبة</p>{% endif %}{% endif %}
+  {% if missing %}<p class="missing">{{ ic('alert') }} مستندات ناقصة: {{ missing|join('، ') }}</p>{% else %}<p class="okmsg">{{ ic('check') }} كل المستندات الأساسية مرفوعة</p>{% endif %}
+</div>
+</div>
+
+
+<div class="card" id="pulls">
+  <h3>سحب المستندات</h3>
+  {% if pulls %}
+  <div class="pulls">
+  {% for p, files in pulls %}
+    <div class="pull {{ 'done' if p.status == 'تم السحب' }}">
+      <div class="ph"><b>{{ p.doc_type }}</b>
+        <span class="badge {{ 'green' if p.status == 'تم السحب' else ('red' if p.status == 'لم يتم السحب' else 'orange') }}">{{ p.status }}</span></div>
+      {% if p.status == 'تم السحب' %}<div class="mut">تاريخ السحب: <b>{{ p.pulled_date or '-' }}</b> · المسؤول: <b>{{ p.resp_name or '-' }}</b></div>
+      {% elif p.resp_name %}<div class="mut">المسؤول: {{ p.resp_name }}</div>{% endif %}
+      {% if p.note %}<div class="mut">ملاحظة: {{ p.note }}</div>{% endif %}
+      <div class="mut" style="margin-top:4px">{% if files %}نسخة إلكترونية:
+        {% for d in files %}<a href="{{ url_for('doc_download', did=d.id) }}">{{ ic('download') }} {{ d.original_name }}</a>{{ '، ' if not loop.last }}{% endfor %}
+        {% else %}<span>لا توجد نسخة إلكترونية مرفوعة</span>{% endif %}</div>
+      {% if me.is_admin or me.can_edit %}
+      <form method="post" action="{{ url_for('pull_update', pid=p.id) }}" class="row pf">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <div><label>الحالة</label><select name="status">{% for x in PULL_STATUSES %}<option {{ 'selected' if x == p.status }}>{{ x }}</option>{% endfor %}</select></div>
+        <div><label>تاريخ السحب</label><input type="date" name="pulled_date" value="{{ p.pulled_date or '' }}"></div>
+        <div><label>الموظف المسؤول</label><select name="responsible_id"><option value="">—</option>{% for u in users %}<option value="{{ u.id }}" {{ 'selected' if (p.responsible_id or me.id) == u.id }}>{{ u.full_name }}</option>{% endfor %}</select></div>
+        <div><label>ملاحظة</label><input name="note" value="{{ p.note or '' }}" maxlength="300"></div>
+        <button class="btn sm auto">حفظ</button>
+      </form>{% endif %}
+      <div class="pact">
+        {% if me.is_admin or me.can_add %}
+        <form method="post" action="{{ url_for('doc_upload', sid=s.id) }}" enctype="multipart/form-data" class="inl">
+          <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="doc_type" value="{{ p.doc_type }}"><input type="hidden" name="anchor" value="pulls">
+          <label class="filebtn">{{ ic('upload') }} رفع نسخة<input type="file" name="file" required onchange="this.form.submit()"></label>
+        </form>{% endif %}
+        {% if me.is_admin or me.can_edit %}
+        <form method="post" action="{{ url_for('pull_delete', pid=p.id) }}" class="inl" onsubmit="return confirm('إلغاء هذا المستند من قائمة السحب؟')">
+          <input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn red sm">{{ ic('trash') }} إلغاء من القائمة</button></form>{% endif %}
+      </div>
+    </div>
+  {% endfor %}
+  </div>
+  {% else %}<p class="mut">لم يتم تحديد مستندات مطلوبة للسحب على هذه الشحنة بعد.</p>{% endif %}
+  {% if me.is_admin or me.can_edit %}
+  {% set have_types = pulls|map(attribute=0)|map(attribute='doc_type')|list %}
+  <form method="post" action="{{ url_for('pull_add', sid=s.id) }}" class="addpull">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <b>تحديد المستندات المطلوبة:</b>
+    <div class="chk">{% for t in PULL_TYPES %}{% if t not in have_types %}<label class="{{ 'new' if loop.index <= 6 }}"><input type="checkbox" name="doc_type" value="{{ t }}"> {{ t }}</label>{% endif %}{% endfor %}</div>
+    <button class="btn sm">{{ ic('plus') }} إضافة للقائمة</button>
+  </form>{% endif %}
+</div>
+
+<div class="card" id="orders">
+  <h3>الأوامر المرتبطة بالشحنة</h3>
+  {% for t in stasks %}
+  <div class="doc"><div><a href="{{ url_for('task_detail', tid=t.id) }}"><b>#{{ t.id }} {{ t.title }}</b></a>
+    <div class="mut">{{ t.from_name }} ← {{ t.to_name }} · {{ t.created_at }}</div></div>
+    <span class="badge {{ {'جديد':'red','تم الاطلاع':'orange','جاري التنفيذ':'blue','مكتمل':'green'}[t.status] }}">{{ t.status }}</span></div>
+  {% else %}<p class="mut">لا توجد أوامر على هذه الشحنة</p>{% endfor %}
+  <p style="margin-top:12px"><a class="btn navy sm" href="{{ url_for('task_new', shipment=s.id) }}">{{ ic('task') }} إرسال أمر جديد</a></p>
+</div>
+
+<div class="card">
+  <h3>المستندات</h3>
+  {% for d in docs %}
+  <div class="doc">
+    <div><span class="pdfi">{{ d.original_name.rsplit('.',1)[-1]|upper if '.' in d.original_name else 'FILE' }}</span>
+      <b>{{ d.doc_type }}</b> — {{ d.original_name }}<div class="mut">{{ d.uploaded_by }} · {{ d.uploaded_at }}</div></div>
+    <div>
+      <a class="btn sm" href="{{ url_for('doc_download', did=d.id) }}">{{ ic('download') }} تحميل</a>
+      {% if me.is_admin or me.can_delete %}
+      <form method="post" action="{{ url_for('doc_delete', did=d.id) }}" style="display:inline" onsubmit="return confirm('حذف المستند؟')">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn red sm">{{ ic('trash') }} حذف</button></form>{% endif %}
+    </div>
+  </div>
+  {% else %}<p class="mut">لا توجد مستندات بعد</p>{% endfor %}
+  {% if me.is_admin or me.can_add %}
+  <form method="post" action="{{ url_for('doc_upload', sid=s.id) }}" enctype="multipart/form-data" class="row" style="margin-top:14px">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <select name="doc_type">{% for t in DOC_TYPES %}<option>{{ t }}</option>{% endfor %}</select>
+    <label class="dropzone" style="margin:0">{{ ic('upload') }}<span class="dz-label">اسحب الملفات هنا أو اضغط للاختيار</span><input type="file" name="file" multiple required><span class="names"></span></label>
+    <button class="btn auto">{{ ic('upload') }} رفع المستند</button>
+  </form>{% endif %}
+</div>
+
+<div class="grid2">
+<div class="card" id="notes">
+  <h3>الملاحظات والتحديثات</h3>
+  {% if me.is_admin or me.can_edit %}
+  <form method="post" action="{{ url_for('shipment_note', sid=s.id) }}">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <textarea name="text" rows="2" placeholder="اكتب ملاحظة..."></textarea>
+    <p><button class="btn sm">{{ ic('plus') }} إضافة</button></p>
+  </form>{% endif %}
+  {% for n in notes %}<div class="doc"><div>{{ n.text }}<div class="mut">{{ n.username }} · {{ n.ts }}</div></div></div>
+  {% else %}<p class="mut">لا توجد ملاحظات</p>{% endfor %}
+</div>
+</div>
+<style>
+.reqs{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:14px}
+.reqs .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.reqs .chips span{padding:4px 10px;border-radius:20px;font-size:13px;font-weight:600}
+.reqs .chips .ok{background:rgba(24,160,88,.14);color:#12803f}
+.reqs .chips .no{background:rgba(229,72,77,.12);color:#c0262b}
+.stepper .step{cursor:pointer}
+.stepper .step.sel i{box-shadow:0 0 0 4px rgba(0,180,255,.35)}
+.stage-help{margin-top:14px;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:rgba(29,107,255,.06)}
+.stage-help h4{margin:0 0 6px;font-size:16px}
+.stage-help p{margin:0 0 8px}
+.stage-help ol{margin:6px 0 10px;padding-inline-start:22px;line-height:1.9}
+.stage-help .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.stage-help .chips span{padding:4px 10px;border-radius:20px;background:rgba(29,107,255,.14);color:var(--brand);font-size:13px;font-weight:600}
+</style>
+<script>
+(function(){
+  var steps=document.querySelectorAll('.stepper .step'), items=document.querySelectorAll('#stageHelp .si');
+  function show(n){
+    items.forEach(function(x){x.hidden = x.dataset.n!==String(n);});
+    steps.forEach(function(x){x.classList.toggle('sel', x.dataset.n===String(n));});
+  }
+  steps.forEach(function(s){
+    s.addEventListener('click',function(){show(s.dataset.n);});
+    s.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();show(s.dataset.n);}});
+  });
+})();
+</script>
+{% endblock %}
