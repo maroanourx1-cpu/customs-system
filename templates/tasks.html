@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="bar"><h1>{{ ic('task') }} الأوامر والمهام</h1>
+  <div><a class="btn" href="{{ url_for('task_new') }}">{{ ic('plus') }} أمر جديد</a></div></div>
+<div class="card">
+  <div class="chips-nav">
+    <a class="{{ 'on' if box == 'in' }}" href="{{ url_for('tasks', box='in', status=st) }}">الواردة لي</a>
+    <a class="{{ 'on' if box == 'out' }}" href="{{ url_for('tasks', box='out', status=st) }}">الصادرة مني</a>
+    {% if me.is_admin %}<a class="{{ 'on' if box == 'all' }}" href="{{ url_for('tasks', box='all', status=st) }}">كل الأوامر (مدير)</a>{% endif %}
+  </div>
+  <div class="chips-nav" style="margin-top:8px">
+    <a class="{{ 'on' if not st }}" href="{{ url_for('tasks', box=box) }}">الكل</a>
+    <a class="{{ 'on' if st == 'open' }}" href="{{ url_for('tasks', box=box, status='open') }}">غير المكتملة</a>
+    {% for x in TASK_STATUSES %}<a class="{{ 'on' if st == x }}" href="{{ url_for('tasks', box=box, status=x) }}">{{ x }}</a>{% endfor %}
+  </div>
+  <div class="tablewrap" style="margin-top:14px"><table>
+    <tr><th>#</th><th>الأمر</th><th>الشحنة</th><th>من</th><th>إلى</th><th>أُرسل</th><th>قُرئ</th><th>الحالة</th></tr>
+    {% for t in rows %}<tr>
+      <td>{{ t.id }}</td>
+      <td style="white-space:normal;min-width:180px"><a href="{{ url_for('task_detail', tid=t.id) }}"><b>{{ t.title }}</b></a></td>
+      <td><a href="{{ url_for('shipment_detail', sid=t.shipment_id) }}">{{ t.number }}</a></td>
+      <td>{{ t.from_name }}</td><td>{{ t.to_name }}</td><td>{{ t.created_at[5:16] }}</td>
+      <td>{{ t.read_at[5:16] if t.read_at else '—' }}</td>
+      <td><span class="badge {{ {'جديد':'red','تم الاطلاع':'orange','جاري التنفيذ':'blue','مكتمل':'green'}[t.status] }}">{{ t.status }}</span></td>
+    </tr>{% else %}<tr><td colspan="8" class="empty">لا توجد أوامر</td></tr>{% endfor %}
+  </table></div>
+</div>
+{% endblock %}
