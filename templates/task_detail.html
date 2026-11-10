@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="bar"><h1>{{ ic('task') }} أمر #{{ t.id }}
+  <span class="badge {{ {'جديد':'red','تم الاطلاع':'orange','جاري التنفيذ':'blue','مكتمل':'green'}[t.status] }}">{{ t.status }}</span></h1>
+  <div><a class="btn light" href="{{ url_for('tasks') }}">{{ ic('back') }} رجوع</a></div></div>
+<div class="grid2">
+  <div class="card">
+    <h3>{{ t.title }}</h3>
+    {% if t.details %}<p class="det" data-nt>{{ t.details }}</p>{% endif %}
+    <div class="kv">
+      <div class="k">الشحنة</div><div><a href="{{ url_for('shipment_detail', sid=t.shipment_id) }}">{{ t.number }}</a> — {{ t.client }}</div>
+      <div class="k">من</div><div>{{ t.from_name }}</div>
+      <div class="k">إلى</div><div>{{ t.to_name }}</div>
+    </div>
+    <p style="margin-top:14px"><a class="btn light sm" href="{{ url_for('chat', u=(t.from_id if t.to_id == me.id else t.to_id)) }}">{{ ic('chat') }} محادثة</a></p>
+  </div>
+  <div class="card">
+    <h3>المتابعة</h3>
+    <div class="timeline">
+      <div class="tl done"><b>أُرسل</b><span>{{ t.created_at }}</span></div>
+      <div class="tl {{ 'done' if t.read_at }}"><b>تم الاطلاع</b><span>{{ t.read_at or 'لم يُفتح بعد' }}</span></div>
+      <div class="tl {{ 'done' if t.started_at }}"><b>جاري التنفيذ</b><span>{{ t.started_at or '—' }}</span></div>
+      <div class="tl {{ 'done' if t.done_at }}"><b>مكتمل</b><span>{{ t.done_at or '—' }}</span></div>
+    </div>
+    {% if me.is_admin or me.id == t.to_id %}
+    <form method="post" action="{{ url_for('task_status', tid=t.id) }}" class="row" style="margin-top:14px">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <select name="status">{% for x in TASK_STATUSES[1:] %}<option {{ 'selected' if x == t.status }}>{{ x }}</option>{% endfor %}</select>
+      <button class="btn auto">تحديث الحالة</button>
+    </form>{% endif %}
+  </div>
+</div>
+{% endblock %}
