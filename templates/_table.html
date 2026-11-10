@@ -1,0 +1,17 @@
+<div class="tablewrap"><table>
+<tr><th>Shipment No.<br><small>رقم الشحنة</small></th><th>Customer<br><small>العميل</small></th><th>Supplier<br><small>المورد</small></th><th>ACID No.</th><th>VAT No.<br><small>الرقم الضريبي</small></th><th>Packages<br><small>الطرود</small></th><th>Weight G/N<br><small>القائم / الصافي</small></th><th>Currency<br><small>العملة</small></th><th>Shipping Co.<br><small>شركة الشحن</small></th><th>Employee<br><small>الموظف المسؤول</small></th><th>Status<br><small>الحالة</small></th></tr>
+{% for s in rows %}{% set st = status_of(s.stage) %}
+<tr>
+<td><a href="{{ url_for('shipment_detail', sid=s.id) }}"><b>{{ s.number }}</b></a><div class="mut" style="font-size:11px">{{ s.arrival_date or '' }}</div></td>
+<td>{{ s.client }}</td><td>{{ s.supplier or '-' }}</td><td>{{ s.acid or '-' }}</td><td>{{ s.tax_number or '-' }}</td>
+<td>{{ s.packages or '-' }}</td>
+<td>{{ s.weight or '-' }} / {{ s.net_weight or '-' }}</td>
+<td>{{ s.invoice_currency or '-' }}</td>
+<td>{{ s.carrier or '-' }}</td>
+<td>{{ s.resp_name or '-' }}</td>
+<td><span class="badge {{ st[1] }}">{{ st[0] }}</span><div class="mut" style="font-size:11px;margin:3px 0">{{ s.stage }}/{{ LAST_STAGE }} · {{ STAGES[s.stage-1] }}</div>
+  {% if s.pull_missing %}<span class="badge orange" title="مستندات سحب ناقصة">مستندات ناقصة {{ s.pull_missing }}</span>{% endif %}
+  {% if s.reg_pending %}<span class="badge red" title="عروض رقابية بدون موافقة">رقابي معلق {{ s.reg_pending }}</span>{% endif %}</td>
+</tr>
+{% else %}<tr><td colspan="11" class="empty">لا توجد شحنات</td></tr>{% endfor %}
+</table></div>

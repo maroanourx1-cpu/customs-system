@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="bar">
+  <h1>{{ ic('history') }} سجل الشحنة: {{ s.number }}</h1>
+  <a class="btn light" href="{{ url_for('shipment_detail', sid=s.id) }}">{{ ic('back') }} رجوع للشحنة</a>
+</div>
+<div class="card">
+  <p class="mut" style="margin-top:0">من إضافة الشحنة لحد آخر عملية، بالترتيب.</p>
+  <div class="tablewrap"><table>
+    <tr><th>#</th><th>الوقت</th><th>الموظف</th><th>العملية</th><th>التفاصيل</th></tr>
+    {% for r in rows %}<tr><td>{{ loop.index }}</td><td>{{ r.ts }}</td><td>{{ r.username }}</td><td>{{ r.action }}</td><td>{{ r.details }}</td></tr>
+    {% else %}<tr><td colspan="5" class="empty">لا يوجد سجل</td></tr>{% endfor %}
+  </table></div>
+</div>
+{% endblock %}
