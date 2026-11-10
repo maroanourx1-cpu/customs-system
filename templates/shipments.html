@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block body %}
+{% set a = request.args %}
+<div class="bar"><h1>{{ ic('ship') }} الشحنات ({{ total }})</h1>
+  <div>{% if me.is_admin %}<a class="btn navy" href="{{ url_for('shipment_scan') }}">{{ ic('file') }} اسكان</a>{% endif %}
+  {% if me.is_admin or me.can_add %}<a class="btn" href="{{ url_for('shipment_new') }}">{{ ic('plus') }} شحنة جديدة</a>{% endif %}</div></div>
+<div class="card">
+  <form method="get" style="margin-bottom:14px">
+    <div class="row">
+      <input name="q" value="{{ a.get('q','') }}" placeholder="ابحث برقم الشحنة أو العميل أو المورد أو ACID أو VAT أو البوليصة...">
+    </div>
+    <div class="row">
+      <div><label>ACID</label><input name="acid" value="{{ a.get('acid','') }}"></div>
+      <div><label>VAT / الرقم الضريبي</label><input name="tax_number" value="{{ a.get('tax_number','') }}"></div>
+      <div><label>شركة الشحن</label><input name="carrier" value="{{ a.get('carrier','') }}"></div>
+      <div><label>العملة</label><select name="currency"><option value="">الكل</option>{% for c in CURRENCIES %}<option {{ 'selected' if a.get('currency','').upper()==c }}>{{ c }}</option>{% endfor %}</select></div>
+      <div><label>الموظف المسؤول</label><select name="resp"><option value="">الكل</option>{% for u in users %}<option value="{{ u.id }}" {{ 'selected' if a.get('resp')==u.id|string }}>{{ u.full_name }}</option>{% endfor %}</select></div>
+      <div><label>المرحلة</label><select name="stage"><option value="">الكل</option>{% for n in STAGES %}<option value="{{ loop.index }}" {{ 'selected' if a.get('stage')==loop.index|string }}>{{ loop.index }}. {{ n }}</option>{% endfor %}</select></div>
+    </div>
+    <div class="row">
+      <div><label>وصول من</label><input type="date" name="date_from" value="{{ a.get('date_from','') }}"></div>
+      <div><label>إلى</label><input type="date" name="date_to" value="{{ a.get('date_to','') }}"></div>
+      <div><label>الحالة</label><select name="status"><option value="">كل الحالات</option>
+        <option value="open" {{ 'selected' if a.get('status')=='open' }}>المفتوحة</option>
+        <option value="closed" {{ 'selected' if a.get('status')=='closed' }}>المنتهية</option></select></div>
+      <div><label>رقابي</label><select name="reg"><option value="">الكل</option><option value="pending" {{ 'selected' if a.get('reg')=='pending' }}>فيه عروض رقابية معلقة</option></select></div>
+      <div><label>ترتيب حسب</label><select name="sort">
+        <option value="">الأحدث إضافة</option>
+        <option value="date" {{ 'selected' if a.get('sort')=='date' }}>تاريخ الوصول (الأحدث)</option>
+        <option value="date_asc" {{ 'selected' if a.get('sort')=='date_asc' }}>تاريخ الوصول (الأقدم)</option>
+        <option value="status" {{ 'selected' if a.get('sort')=='status' }}>الحالة (الأكثر تقدمًا)</option>
+        <option value="status_asc" {{ 'selected' if a.get('sort')=='status_asc' }}>الحالة (الأقل تقدمًا)</option>
+        <option value="employee" {{ 'selected' if a.get('sort')=='employee' }}>الموظف المسؤول</option></select></div>
+      <button class="btn auto">بحث</button>
+      <a class="btn light auto" href="{{ url_for('shipments') }}">مسح</a>
+    </div>
+  </form>
+  {% include "_table.html" %}
+  {% if pages > 1 %}
+  <div class="pager">
+    {% for i in range(1, pages+1) %}
+      {% if i == page_no %}<span class="cur">{{ i }}</span>{% else %}<a href="{{ url_for('shipments', p=i, **qargs) }}">{{ i }}</a>{% endif %}
+    {% endfor %}
+  </div>{% endif %}
+</div>
+{% endblock %}
