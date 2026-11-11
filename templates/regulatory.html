@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="bar"><h1>{{ ic('alert') }} العروض الرقابية</h1></div>
+<div class="card">
+  <form class="row" method="get">
+    <div><label>بحث (شحنة / عميل / رقم طلب / جهة / ACID)</label><input name="q" value="{{ q }}"></div>
+    <div><label>العرض</label><select name="t"><option value="">الكل</option>{% for x in all_types %}<option {{ 'selected' if x == t }}>{{ x }}</option>{% endfor %}</select></div>
+    <div><label>الموظف</label><select name="emp"><option value="">الكل</option>{% for u in users %}<option value="{{ u.id }}" {{ 'selected' if emp == u.id|string }}>{{ u.full_name }}</option>{% endfor %}</select></div>
+    <div><label>الحالة</label><select name="status">
+      <option value="pending" {{ 'selected' if st == 'pending' }}>لم تصدر موافقتها بعد</option>
+      <option value="all" {{ 'selected' if st == 'all' }}>الكل</option>
+      {% for x in REG_STATUSES %}<option value="{{ x }}" {{ 'selected' if x == st }}>{{ x }}</option>{% endfor %}</select></div>
+    <button class="btn auto">عرض</button>
+    <a class="btn light auto noprint" href="{{ url_for('regulatory_export', q=q, t=t, emp=emp, status=st) }}">{{ ic('download') }} تصدير Excel/CSV</a>
+    <button type="button" class="btn light auto noprint" onclick="print()">{{ ic('printer') }} طباعة</button>
+  </form>
+</div>
+<div class="card">
+  <h3>العروض ({{ rows|length }})</h3>
+  <div class="tablewrap"><table>
+    <tr><th>الشحنة</th><th>العميل</th><th>العرض</th><th>الجهة</th><th>رقم الطلب</th><th>التقديم</th><th>الحالة</th><th>صدور الموافقة</th><th>المتابعة</th><th>مستندات</th></tr>
+    {% for r in rows %}<tr>
+      <td><a href="{{ url_for('shipment_detail', sid=r.shipment_id) }}#regs"><b>{{ r.number }}</b></a></td><td>{{ r.client }}</td><td>{{ r.reg_type }}</td>
+      <td>{{ r.authority or '-' }}</td><td>{{ r.request_no or '-' }}</td><td>{{ r.submitted_date or '-' }}</td>
+      <td><span class="badge {{ REG_COLORS[r.status] }}">{{ r.status }}</span></td>
+      <td>{{ r.approval_date or '-' }}</td><td>{{ r.resp_name or '-' }}</td><td>{{ ('✓ ' ~ r.files) if r.files else '—' }}</td></tr>
+    {% else %}<tr><td colspan="10" class="empty">لا توجد عروض مطابقة</td></tr>{% endfor %}
+  </table></div>
+</div>
+{% endblock %}

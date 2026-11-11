@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block body %}
+{% set a = request.args %}
+{% set adv = ['acid','tax_number','carrier','supplier_vat','currency','resp','stage','date_from','date_to','sort'] %}
+{% set adv_n = namespace(v=0) %}{% for k in adv %}{% if a.get(k) %}{% set adv_n.v = adv_n.v + 1 %}{% endif %}{% endfor %}
+<div class="bar"><h1>{{ ic('ship') }} الشحنات <span class="badge gray">{{ total }}</span></h1>
+  <div>
+    <form method="post" action="{{ url_for('sheets_from_shipments') }}" class="inl" data-noload>
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      {% for k, v in qargs.items() %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+      <button class="btn ghost" title="فتح نتائج البحث الحالية كجدول Excel قابل للتعديل">{{ ic('grid') }} فتح في Excel</button>
+    </form>
+    {% if me.is_admin %}<a class="btn navy" href="{{ url_for('shipment_scan') }}">{{ ic('file') }} اسكان</a>{% endif %}
+    {% if me.is_admin or me.can_add %}<a class="btn" href="{{ url_for('shipment_new') }}">{{ ic('plus') }} شحنة جديدة</a>{% endif %}
+  </div>
+</div>
+
+{# تبويبات سريعة للحالة — بتحافظ على باقي معايير البحث #}
+{% macro tab(label, key, val) %}
+  {% set q = dict(qargs) %}
+  {% for o in ['status','reg','pull','p'] %}{% set _ = q.pop(o, None) %}{% endfor %}
+  {% if key %}{% set _ = q.update({key: val}) %}{% endif %}
+  {% set on = (request.args.get(key,'') == val) if key else (not request.args.get('status') and not request.args.get('reg') and not request.args.get('pull')) %}
+  <a class="{{ 'on' if on }}" href="{{ url_for('shipments', **q) }}">{{ label }}</a>
+{% endmacro %}
+<div class="seg">
+  {{ tab('الكل', None, '') }}{{ tab('المفتوحة', 'status', 'open') }}{{ tab('المنتهية', 'status', 'closed') }}{{ tab('رقابي معلق', 'reg', 'pending') }}{{ tab('مستندات ناقصة', 'pull', 'missing') }}
+</div>
+
+<form method="get" id="fform">
+  <div class="toolbar">
+    <div class="grow">{{ ic('search') }}<input name="q" value="{{ a.get('q','') }}" placeholder="ابحث برقم الشحنة أو العميل أو المورد أو ACID أو VAT أو البوليصة…  ( / )" autocomplete="off"></div>
+    <button type="button" class="btn ghost" data-toggle-filters="filters">{{ ic('filter') }} تصفية متقدمة{% if adv_n.v %}<span class="fcount">{{ adv_n.v }}</span>{% endif %}</button>
+    <button class="btn">بحث</button>
+    {% if qargs %}<a class="btn light" href="{{ url_for('shipments') }}">{{ ic('x') }} مسح</a>{% endif %}
+  </div>
+  {% for k in ['status','reg','pull'] %}{% if a.get(k) %}<input type="hidden" name="{{ k }}" value="{{ a.get(k) }}">{% endif %}{% endfor %}
+  <div class="filters {{ 'open' if adv_n.v }}" id="filters"><div><div class="inner">
+    <div class="row">
+      <div><label>ACID</label><input name="acid" value="{{ a.get('acid','') }}"></div>
+      <div><label>VAT / الرقم الضريبي</label><input name="tax_number" value="{{ a.get('tax_number','') }}"></div>
+      <div><label>شركة الشحن</label><input name="carrier" value="{{ a.get('carrier','') }}"></div>
+      <div><label>VAT المورد</label><input name="supplier_vat" value="{{ a.get('supplier_vat','') }}"></div>
+      <div><label>العملة</label><select name="currency"><option value="">الكل</option>{% for c in CURRENCIES %}<option {{ 'selected' if a.get('currency','').upper()==c }}>{{ c }}</option>{% endfor %}</select></div>
+      <div><label>الموظف المسؤول</label><select name="resp"><option value="">الكل</option>{% for u in users %}<option value="{{ u.id }}" {{ 'selected' if a.get('resp')==u.id|string }}>{{ u.full_name }}</option>{% endfor %}</select></div>
+      <div><label>المرحلة</label><select name="stage"><option value="">الكل</option>{% for n in STAGES %}<option value="{{ loop.index }}" {{ 'selected' if a.get('stage')==loop.index|string }}>{{ loop.index }}. {{ n }}</option>{% endfor %}</select></div>
+      <div><label>وصول من</label><input type="date" name="date_from" value="{{ a.get('date_from','') }}"></div>
+      <div><label>إلى</label><input type="date" name="date_to" value="{{ a.get('date_to','') }}"></div>
+      <div><label>ترتيب حسب</label><select name="sort">
+        <option value="">الأحدث إضافة</option>
+        <option value="date" {{ 'selected' if a.get('sort')=='date' }}>تاريخ الوصول (الأحدث)</option>
+        <option value="date_asc" {{ 'selected' if a.get('sort')=='date_asc' }}>تاريخ الوصول (الأقدم)</option>
+        <option value="status" {{ 'selected' if a.get('sort')=='status' }}>الحالة (الأكثر تقدمًا)</option>
+        <option value="status_asc" {{ 'selected' if a.get('sort')=='status_asc' }}>الحالة (الأقل تقدمًا)</option>
+        <option value="employee" {{ 'selected' if a.get('sort')=='employee' }}>الموظف المسؤول</option></select></div>
+    </div>
+  </div></div></div>
+</form>
+
+<div class="card" style="padding:14px">
+  {% include "_table.html" %}
+  {% if pages > 1 %}
+  <div class="pager">
+    {% if page_no > 1 %}<a href="{{ url_for('shipments', p=page_no-1, **qargs) }}">السابق</a>{% endif %}
+    {% for i in range(1, pages+1) %}
+      {% if i == page_no %}<span class="cur">{{ i }}</span>{% elif i <= 2 or i > pages - 2 or (i - page_no)|abs <= 2 %}<a href="{{ url_for('shipments', p=i, **qargs) }}">{{ i }}</a>{% elif (i - page_no)|abs == 3 %}<span>…</span>{% endif %}
+    {% endfor %}
+    {% if page_no < pages %}<a href="{{ url_for('shipments', p=page_no+1, **qargs) }}">التالي</a>{% endif %}
+  </div>{% endif %}
+</div>
+{% endblock %}

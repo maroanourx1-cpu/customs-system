@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="bar"><h1>{{ ic('chat') }} الشات الداخلي</h1>
+  <div><a class="btn navy" href="{{ url_for('task_new', to=(peer.id if peer and peer.id else '')) }}">{{ ic('task') }} إرسال أمر</a></div></div>
+<div class="chat {{ 'has-peer' if peer }}">
+  <aside class="contacts card">
+    <a class="contact general {{ 'on' if peer and peer.id == 0 }}" href="{{ url_for('chat', u=0) }}">
+      <span class="avatar gen">{{ ic('users') }}</span>
+      <span class="ci"><b>الشات العام</b><small>{% if general.last %}{{ general.last.sender_name }}: {{ general.last.body or ('📎 ' ~ general.last.file_name) }}{% else %}رسائل لكل الموظفين{% endif %}</small></span>
+      {% if general.unread %}<span class="nb">{{ general.unread }}</span>{% endif %}
+    </a>
+    <h3 style="margin-top:12px">الموظفون</h3>
+    {% for c in contacts %}
+    <a class="contact {{ 'on' if peer and peer.id == c.id }}" href="{{ url_for('chat', u=c.id) }}">
+      <span class="avatar">{{ c.name[:1] }}</span>
+      <span class="ci"><b>{{ c.name }}</b><small>{% if c.last %}{{ ('أمر: ' ~ c.last.body) if c.last.task_id else (c.last.body or ('📎 ' ~ c.last.file_name)) }}{% else %}ابدأ محادثة{% endif %}</small></span>
+      {% if c.unread %}<span class="nb">{{ c.unread }}</span>{% endif %}
+    </a>
+    {% else %}<p class="mut">لا يوجد موظفون آخرون بعد. أضفهم من صفحة الموظفين.</p>{% endfor %}
+  </aside>
+  <section class="thread card">
+  {% if peer %}
+    <div class="th-head"><a class="btn light sm back" href="{{ url_for('chat') }}">{{ ic('back') }}</a><span class="avatar {{ 'gen' if peer.id == 0 }}">{% if peer.id == 0 %}{{ ic('users') }}{% else %}{{ peer.full_name[:1] }}{% endif %}</span><b>{{ peer.full_name }}</b></div>
+    <div id="msgs" class="msgs">{% include "_chat_msgs.html" %}</div>
+    <form id="sendForm" class="composer" method="post" action="{{ url_for('chat_send') }}" enctype="multipart/form-data">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="to" value="{{ peer.id }}"><input type="hidden" name="ajax" value="1">
+      <div class="crow">
+        <input name="shipment" list="shiplist" placeholder="ربط بشحنة (اختياري)" autocomplete="off" class="shipin">
+        <datalist id="shiplist">{% for sh in ships %}<option value="{{ sh.number }}">{{ sh.client }}</option>{% endfor %}</datalist>
+        <label class="filebtn" title="إرفاق ملف">{{ ic('clip') }}<input type="file" name="file" id="chatFile"></label>
+      </div>
+      <div class="crow">
+        <textarea name="body" id="chatBody" rows="1" placeholder="اكتب رسالة..." maxlength="4000"></textarea>
+        <button class="btn" id="sendBtn">{{ ic('send') }} إرسال</button>
+      </div>
+      <div id="fileName" class="mut"></div>
+    </form>
+  {% else %}
+    <div class="empty">{{ ic('chat') }}<p>اختر موظفًا من القائمة لبدء المحادثة</p></div>
+  {% endif %}
+  </section>
+</div>
+{% if peer %}
+<script>
+(function(){
+  var box=document.getElementById('msgs'), last={{ last_id }}, peer={{ peer.id }}, busy=false;
+  var form=document.getElementById('sendForm'), body=document.getElementById('chatBody'), fn=document.getElementById('fileName'), file=document.getElementById('chatFile');
+  function down(){box.scrollTop=box.scrollHeight}
+  down();
+  file.addEventListener('change',function(){fn.textContent=file.files[0]?('📎 '+file.files[0].name):''});
+  function poll(){
+    if(busy||document.hidden)return; busy=true;
+    fetch('{{ url_for("chat_poll") }}?u='+peer+'&after='+last,{credentials:'same-origin'}).then(function(r){return r.json()}).then(function(d){
+      if(d.n){var nearEnd=box.scrollHeight-box.scrollTop-box.clientHeight<120;box.insertAdjacentHTML('beforeend',d.html);last=d.last;if(nearEnd)down();}
+      busy=false;
+    }).catch(function(){busy=false});
+  }
+  setInterval(poll,3500);
+  function send(e){
+    if(e)e.preventDefault();
+    if(!body.value.trim()&&!file.files.length)return;
+    var btn=document.getElementById('sendBtn');btn.disabled=true;
+    fetch(form.action,{method:'POST',body:new FormData(form),credentials:'same-origin'}).then(function(r){return r.json()}).then(function(d){
+      btn.disabled=false;
+      if(!d.ok){alert(d.message||'تعذر الإرسال');return}
+      body.value='';file.value='';fn.textContent='';busy=false;poll();body.focus();
+    }).catch(function(){btn.disabled=false;alert('تعذر الاتصال بالسيرفر')});
+  }
+  form.addEventListener('submit',send);
+  body.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}});
+})();
+</script>
+{% endif %}
+{% endblock %}
