@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}{{ s.title }} – INX Excel{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/sheets.css', v=asset_v) }}">{% endblock %}
+{% block body %}
+<div class="xl" id="xl" data-save="{{ url_for('sheets_save', sid=s.id) }}" data-export="{{ url_for('sheets_export', sid=s.id) }}" data-version="{{ s.version }}" data-readonly="{{ 0 if can_edit else 1 }}" data-csrf="{{ csrf }}">
+  <div class="xl-top">
+    <a class="btn ghost sm" href="{{ url_for('sheets_list') }}" title="كل الجداول">{{ ic('back') }} الجداول</a>
+    <input id="xlTitle" class="xl-title" value="{{ s.title }}" maxlength="150" aria-label="اسم الجدول">
+    <span class="xl-save" id="xlSave" data-state="saved">تم الحفظ ✓</span>
+    <span class="tb-gap"></span>
+    <button type="button" class="btn ghost sm xl-printbtn" data-act="print" title="طباعة الجدول (Ctrl+P)">{{ ic('printer') }} طباعة</button>
+    <button type="button" class="btn light sm" data-act="csv">{{ ic('download') }} CSV</button>
+    <button type="button" class="btn green sm" data-act="xlsx">{{ ic('download') }} تصدير Excel</button>
+    {% if can_edit %}<button type="button" class="btn sm" data-act="save">{{ ic('save') }} حفظ</button>{% endif %}
+  </div>
+
+  <div class="xl-tools" role="toolbar" aria-label="أدوات الجدول">
+    <button type="button" id="xlUndo" data-act="undo" title="تراجع (Ctrl+Z)">{{ ic('undo') }}</button>
+    <button type="button" id="xlRedo" data-act="redo" title="إعادة (Ctrl+Y)">{{ ic('redo') }}</button>
+    <i class="sep"></i>
+    <button type="button" data-fmt="b" title="عريض (Ctrl+B)">{{ ic('bold') }}</button>
+    <button type="button" data-fmt="i" title="مائل (Ctrl+I)">{{ ic('italic') }}</button>
+    <button type="button" data-fmt="al" data-val="l" title="محاذاة لليسار">{{ ic('al') }}</button>
+    <button type="button" data-fmt="al" data-val="c" title="توسيط">{{ ic('ac') }}</button>
+    <button type="button" data-fmt="al" data-val="r" title="محاذاة لليمين">{{ ic('ar') }}</button>
+    <i class="sep"></i>
+    <button type="button" data-act="fg" title="لون الخط"><b class="ltr">A</b><u id="xlFgSw"></u></button>
+    <button type="button" data-act="bg" title="لون التعبئة">{{ ic('fill') }}<u id="xlBgSw"></u></button>
+    <button type="button" data-fmt="bd" title="حدود">{{ ic('border') }}</button>
+    <select id="xlNf" title="تنسيق الرقم"><option value="">عام</option><option value="n2">رقم 1,234.00</option><option value="n0">رقم صحيح 1,234</option><option value="pct">نسبة مئوية %</option></select>
+    <i class="sep"></i>
+    <button type="button" data-act="sum" title="جمع تلقائي">{{ ic('sigma') }}</button>
+    <button type="button" data-act="asc" title="ترتيب تصاعدي (بالعمود الحالي)">{{ ic('sort') }}<small>أ→ي</small></button>
+    <button type="button" data-act="desc" title="ترتيب تنازلي">{{ ic('sort') }}<small>ي→أ</small></button>
+    <i class="sep"></i>
+    <button type="button" data-act="rowadd" title="إدراج صف">{{ ic('rowadd') }}</button>
+    <button type="button" data-act="coladd" title="إدراج عمود">{{ ic('coladd') }}</button>
+    <button type="button" data-act="rowdel" title="حذف الصف">{{ ic('minus') }}<small>صف</small></button>
+    <button type="button" data-act="coldel" title="حذف العمود">{{ ic('minus') }}<small>عمود</small></button>
+    <button type="button" data-act="rtl" title="اتجاه الورقة: عربي (من اليمين لليسار) / إنجليزي"><b class="ltr">⇄</b><small>عربي</small></button>
+    <button type="button" data-act="freeze" title="تثبيت الصف الأول">{{ ic('pin') }}</button>
+    <button type="button" data-act="find" title="بحث (Ctrl+F)">{{ ic('search') }}</button>
+  </div>
+
+  <div class="xl-fxbar">
+    <input id="xlName" class="xl-name" value="A1" aria-label="مربع الاسم" autocomplete="off" spellcheck="false">
+    <span class="xl-fxl">fx</span>
+    <input id="xlFx" class="xl-fx" aria-label="شريط الصيغة" autocomplete="off" spellcheck="false" placeholder="اكتب قيمة أو معادلة مثل =SUM(A1:A5)">
+    <div class="xl-find" id="xlFind" hidden>
+      <input id="xlFindIn" placeholder="بحث في الورقة…" autocomplete="off"><span id="xlFindCnt"></span>
+      <button type="button" id="xlFindPrev" title="السابق">‹</button><button type="button" id="xlFindNext" title="التالي">›</button><button type="button" id="xlFindX" title="إغلاق">{{ ic('x') }}</button>
+    </div>
+  </div>
+
+  <div class="xl-wrap" id="xlWrap" tabindex="0">
+    <div class="xl-inner" id="xlInner">
+      <div class="xl-colhead" id="xlCols"></div>
+      <div class="xl-frozen" id="xlFrozen"></div>
+      <div class="xl-rows" id="xlRows"></div>
+      <div class="xl-sel" id="xlSel"></div><div class="xl-act" id="xlAct"></div><i class="xl-fill" id="xlFill"></i>
+      <textarea class="xl-ed" id="xlEd" rows="1" spellcheck="false" autocomplete="off" aria-label="تحرير الخلية"></textarea>
+      <div class="xl-hint" id="xlHint" hidden></div>
+    </div>
+  </div>
+
+  <div class="xl-foot">
+    <div class="xl-tabs" id="xlTabs"></div>
+    <div class="xl-stat" id="xlStat"></div>
+    <button type="button" class="xl-more" data-act="more" title="إضافة 100 صف">+ 100 صف</button>
+  </div>
+  <div class="xl-menu" id="xlMenu" hidden></div>
+  <div class="xl-pal" id="xlPal" hidden></div>
+</div>
+<script type="application/json" id="wbdata">{{ book_json }}</script>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/xl-formula.js', v=asset_v) }}"></script>
+<script src="{{ url_for('static', filename='js/sheets.js', v=asset_v) }}"></script>
+{% endblock %}

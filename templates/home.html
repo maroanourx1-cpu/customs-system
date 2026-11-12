@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="hero">
+  <div class="txt">
+    <span class="hello">أهلاً {{ me.full_name }} 👋</span>
+    <h1>INX – نظام إدارة الشحنات والتخليص الجمركي</h1>
+    <p>معاً .. لعمل أكثر تنظيماً واحترافية</p>
+    <div class="acts">
+      {% if me.is_admin or me.can_add %}<a class="btn solid" href="{{ url_for('shipment_new') }}">{{ ic('plus') }} شحنة جديدة</a>{% endif %}
+      <a class="btn" href="{{ url_for('sheets_list') }}">{{ ic('grid') }} جداول Excel</a>
+      <a class="btn" href="{{ url_for('task_new') }}">{{ ic('task') }} إرسال أمر</a>
+      <button type="button" class="btn" data-palette>{{ ic('search') }} بحث سريع <kbd style="margin-inline-start:8px">Ctrl K</kbd></button>
+    </div>
+  </div>
+  <svg class="ship" viewBox="0 0 320 140" aria-hidden="true">
+    <rect x="70" y="26" width="34" height="22" rx="2" fill="#ff7a59"/><rect x="104" y="26" width="34" height="22" rx="2" fill="#ffc83d"/><rect x="138" y="26" width="34" height="22" rx="2" fill="#2ecc71"/><rect x="172" y="26" width="34" height="22" rx="2" fill="#38bdf8"/>
+    <rect x="50" y="48" width="34" height="22" rx="2" fill="#38bdf8"/><rect x="84" y="48" width="34" height="22" rx="2" fill="#ff5d73"/><rect x="118" y="48" width="34" height="22" rx="2" fill="#ffc83d"/><rect x="152" y="48" width="34" height="22" rx="2" fill="#7b6dff"/><rect x="186" y="48" width="34" height="22" rx="2" fill="#2ecc71"/>
+    <rect x="232" y="30" width="38" height="40" rx="4" fill="#f4f7ff"/><rect x="238" y="36" width="26" height="8" rx="2" fill="#071e4d"/><rect x="244" y="14" width="10" height="16" fill="#e5484d"/>
+    <path d="M18 70 H300 L272 112 H52 Z" fill="#0a1f4d"/><path d="M26 82 H294 L286 92 H34 Z" fill="#e5484d" opacity=".9"/>
+  </svg>
+</div>
+
+<div class="sect-title">يحتاج انتباهك</div>
+<div class="stats" data-stagger>
+  <a class="stat {{ 'bad hot' if counts.orders_open }}" href="{{ url_for('tasks') }}"><span class="ico">{{ ic('task') }}</span><div><b data-count="{{ counts.orders_open }}">0</b><small>أوامر مفتوحة عليك</small></div><span class="go">{{ ic('back') }}</span></a>
+  <a class="stat {{ 'warn' if counts.chat }}" href="{{ url_for('chat') }}"><span class="ico">{{ ic('chat') }}</span><div><b data-count="{{ counts.chat }}">0</b><small>رسائل غير مقروءة</small></div><span class="go">{{ ic('back') }}</span></a>
+  <a class="stat {{ 'warn' if reg_pending }}" href="{{ url_for('regulatory') }}"><span class="ico">{{ ic('alert') }}</span><div><b data-count="{{ reg_pending }}">0</b><small>عروض رقابية معلقة</small></div><span class="go">{{ ic('back') }}</span></a>
+  <a class="stat {{ 'warn' if pull_pending }}" href="{{ url_for('pulls') }}"><span class="ico">{{ ic('pull') }}</span><div><b data-count="{{ pull_pending }}">0</b><small>مستندات لم تُسحب</small></div><span class="go">{{ ic('back') }}</span></a>
+</div>
+
+<div class="sect-title">نظرة عامة</div>
+<div class="stats" data-stagger style="grid-template-columns:repeat(3,1fr)">
+  <a class="stat" href="{{ url_for('shipments') }}"><span class="ico">{{ ic('ship') }}</span><div><b data-count="{{ total }}">0</b><small>إجمالي الشحنات</small></div><span class="go">{{ ic('back') }}</span></a>
+  <a class="stat" href="{{ url_for('shipments', status='open') }}"><span class="ico">{{ ic('history') }}</span><div><b data-count="{{ open_ }}">0</b><small>شحنات مفتوحة</small></div><span class="go">{{ ic('back') }}</span></a>
+  <a class="stat" href="{{ url_for('documents') }}"><span class="ico">{{ ic('file') }}</span><div><b data-count="{{ docs }}">0</b><small>مستندات مرفوعة</small></div><span class="go">{{ ic('back') }}</span></a>
+</div>
+
+<div class="card">
+  <div class="bar" style="margin-bottom:12px"><h3 style="margin:0">آخر الشحنات</h3><a class="btn light sm" href="{{ url_for('shipments') }}">عرض الكل {{ ic('back') }}</a></div>
+  {% set rows = recent %}
+  {% include "_table.html" %}
+</div>
+{% endblock %}
