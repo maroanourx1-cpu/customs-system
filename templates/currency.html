@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}أسعار العملات – INX{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/currency.css', v=asset_v) }}">{% endblock %}
+{% block body %}
+<div class="bar">
+  <h1>{{ ic('dollar') }} أسعار العملات</h1>
+  <div>
+    <span class="mut" id="fxStamp">جاري التحميل…</span>
+    <button type="button" class="btn light sm" id="fxRefresh">{{ ic('refresh') }} تحديث</button>
+  </div>
+</div>
+
+<div id="fx" data-api="{{ url_for('api_rates') }}">
+
+  <div id="fxErr" class="ip-status err" hidden></div>
+
+  <!-- ========== المحوّل ========== -->
+  <section class="card fx-conv" aria-label="محوّل العملات" data-flags="{{ url_for('static', filename='flags/') }}">
+    <h3>محوّل العملات</h3>
+    <div class="fx-pair" dir="rtl">
+      <fieldset class="fx-box" id="boxFrom" dir="ltr">
+        <legend>من</legend>
+        <div class="fx-in">
+          <div class="fx-amt">
+            <span class="amtwrap"><input type="text" id="fxAmt" inputmode="decimal" value="1" autocomplete="off" aria-label="المبلغ المراد تحويله"><span class="ghost" id="fxGhost" aria-hidden="true">1</span></span>
+            <span class="fx-sym" id="symFrom"></span>
+          </div>
+          <button type="button" class="fx-pick" id="pickFrom" aria-haspopup="listbox" aria-expanded="false" aria-label="اختيار العملة المحوَّل منها" disabled></button>
+        </div>
+      </fieldset>
+      <button type="button" class="fx-swap" id="fxSwap" aria-label="عكس العملتين" title="عكس العملتين">{{ ic('swap') }}</button>
+      <fieldset class="fx-box to" id="boxTo" dir="ltr">
+        <legend>إلى</legend>
+        <div class="fx-in">
+          <div class="fx-amt">
+            <span class="amtwrap"><input type="text" id="fxOut" inputmode="decimal" value="" autocomplete="off" aria-label="المبلغ بعد التحويل"><span class="ghost" id="fxGhost2" aria-hidden="true">0</span></span>
+            <span class="fx-sym" id="symTo"></span>
+          </div>
+          <button type="button" class="fx-pick" id="pickTo" aria-haspopup="listbox" aria-expanded="false" aria-label="اختيار العملة المحوَّل إليها" disabled></button>
+        </div>
+      </fieldset>
+
+      <div class="fx-pop" id="fxPop" hidden dir="ltr">
+        <div class="fx-ps">{{ ic('search') }}<input type="text" id="fxPs" dir="rtl" placeholder="البحث في العملات..." autocomplete="off" aria-label="البحث في العملات"></div>
+        <div class="fx-pl" id="fxPl" role="listbox" aria-label="العملات"></div>
+      </div>
+    </div>
+    <div class="fx-sub mut" id="fxSub"></div>
+    <div class="fx-sub mut" id="fxSub2"></div>
+    <div class="fx-quick" id="fxQuick" aria-label="تحويلات سريعة"></div>
+  </section>
+
+  <!-- ========== أهم العملات مقابل الجنيه ========== -->
+  <div class="fx-cards" id="fxCards" aria-live="polite"></div>
+
+  <!-- ========== كل العملات ========== -->
+  <section class="card">
+    <div class="fx-thead">
+      <h3>كل العملات مقابل الجنيه المصري</h3>
+      <input type="search" id="fxFilter" placeholder="ابحث باسم العملة أو الكود…" autocomplete="off">
+    </div>
+    <div class="fx-tablewrap">
+      <table class="fx-table">
+        <thead><tr><th>العملة</th><th>الكود</th><th>1 وحدة = جنيه</th><th class="hide-sm">1 جنيه = وحدة</th><th>التغير</th></tr></thead>
+        <tbody id="fxBody"></tbody>
+      </table>
+    </div>
+    <p class="mut fx-note">اضغط على أي صف أو كارت لتحويله في المحوّل فوق. الأسعار <b>استرشادية</b> (متوسط السوق العالمي) وقد تختلف قليلًا عن سعر البنك أو سعر الجمارك الرسمي، فاستخدم النشرة الرسمية في المستندات والتقييم الجمركي. <span id="fxSrc"></span></p>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/currency.js', v=asset_v) }}"></script>{% endblock %}

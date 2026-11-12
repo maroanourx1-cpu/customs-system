@@ -1,0 +1,18 @@
+<div class="tablewrap cards sticky-first"><table>
+<tr><th>رقم الشحنة</th><th>العميل</th><th>المورد</th><th>رقم البوليصة</th><th>رقم ACID</th><th>الرقم الضريبي</th><th>الطرود</th><th>الوزن</th><th>46</th><th>الرقم الضريبي للمورد</th><th>شركة الشحن</th><th>الموظف المسؤول</th><th>الحالة</th></tr>
+{% for s in rows %}{% set st = status_of(s.stage) %}
+<tr data-href="{{ url_for('shipment_detail', sid=s.id) }}">
+<td data-label="رقم الشحنة"><a href="{{ url_for('shipment_detail', sid=s.id) }}"><b>{{ s.number }}</b></a><div class="mut" style="font-size:11px">{{ s.arrival_date or '' }}</div></td>
+<td data-label="العميل">{{ s.client }}</td><td data-label="المورد">{{ s.supplier or '-' }}</td><td data-label="رقم البوليصة">{{ s.bl_number or '-' }}</td><td data-label="ACID">{{ s.acid or '-' }}</td><td data-label="الرقم الضريبي">{{ s.tax_number or '-' }}</td>
+<td data-label="الطرود">{{ s.packages or '-' }}</td>
+<td data-label="الوزن">{{ s.weight or '-' }}</td>
+<td data-label="46">{{ s.field_46 or '-' }}</td>
+<td data-label="VAT المورد">{{ s.supplier_vat or '-' }}</td>
+<td data-label="شركة الشحن">{{ s.carrier or '-' }}</td>
+<td data-label="الموظف">{{ s.resp_name or '-' }}</td>
+<td data-label="الحالة"><div><span class="badge {{ st[1] }}">{{ st[0] }}</span><div class="mut" style="font-size:11px;margin:3px 0">{{ s.stage }}/{{ LAST_STAGE }} · {{ STAGES[s.stage-1] }}</div>
+  {% if s.pull_missing %}<span class="badge orange" title="مستندات سحب ناقصة">مستندات ناقصة {{ s.pull_missing }}</span>{% endif %}
+  {% if s.reg_pending %}<span class="badge red" title="عروض رقابية بدون موافقة">رقابي معلق {{ s.reg_pending }}</span>{% endif %}</div></td>
+</tr>
+{% else %}<tr><td colspan="12" class="empty">{{ ic('ship') }}لا توجد شحنات مطابقة</td></tr>{% endfor %}
+</table></div>

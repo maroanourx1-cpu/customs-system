@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#071e4d">
+<title>INX – تسجيل الدخول</title>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('theme')||'light'}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/core.css', v=asset_v) }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css', v=asset_v) }}">
+</head>
+<body>
+{% include "_icons.html" %}
+<div class="toasts"></div>
+<div id="nprog"></div>
+<div class="loginpage">
+  <canvas id="bgnet" class="loginnet"></canvas><span class="orb a"></span><span class="orb b"></span><span class="orb c"></span>
+  <form class="loginbox" method="post">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <img class="logo" src="{{ url_for('static', filename='logo.svg') }}" alt="INX">
+    <h1>INX – Shipping &amp; Customs<br>Management System</h1>
+    {% for cat, m in get_flashed_messages(with_categories=true) %}<div class="flash {{ cat }}">{{ m }}</div>{% endfor %}
+    <div class="field">{{ ic('user') }}<input name="username" placeholder="اسم المستخدم" autocomplete="username" required autofocus></div>
+    <div class="field">{{ ic('lock') }}<input name="password" type="password" placeholder="كلمة المرور" autocomplete="current-password" required>
+      <button type="button" class="eye" data-eye aria-label="إظهار كلمة المرور">{{ ic('eye') }}</button></div>
+    <button class="btn">دخول</button>
+    <p class="tag">إدارة أسهل .. متابعة أدق</p>
+  </form>
+</div>
+<script src="{{ url_for('static', filename='js/core.js', v=asset_v) }}"></script>
+<script src="{{ url_for('static', filename='js/fx.js', v=asset_v) }}" defer></script>
+</body>
+</html>
